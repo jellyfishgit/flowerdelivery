@@ -13,6 +13,7 @@ public class Menu {
         private String storeName;
         private String itemName;
         private Long itemPrice;
+        private Long itemId;
 
 
         public Long getId() {
@@ -42,6 +43,14 @@ public class Menu {
 
         public void setItemPrice(Long itemPrice) {
             this.itemPrice = itemPrice;
+        }
+
+        public Long getItemId() {
+            return itemId;
+        }
+
+        public void setItemId(Long itemId) {
+            this.itemId = itemId;
         }
 
 }
