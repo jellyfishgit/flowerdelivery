@@ -9,6 +9,9 @@ public class Paid extends AbstractEvent {
     private String itemName;
     private Integer qty;
     private String paymentStatus;
+    private Long itemId;
+    private String userName;
+
 
     public Long getId() {
         return id;
@@ -52,5 +55,22 @@ public class Paid extends AbstractEvent {
     public void setPaymentStatus(String paymentStatus) {
         this.paymentStatus = paymentStatus;
     }
+
+    public Long getItemId() {
+        return itemId;
+    }
+
+    public void setItemId(Long itemId) {
+        this.itemId = itemId;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
 }
 

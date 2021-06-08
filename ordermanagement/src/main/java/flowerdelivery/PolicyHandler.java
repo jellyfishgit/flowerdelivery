@@ -12,8 +12,6 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import lombok.extern.slf4j.Slf4j;
-
 @Service
 public class PolicyHandler{
 	@Autowired(required=true)
@@ -31,16 +29,17 @@ public class PolicyHandler{
             System.out.println("##### listener AcceptRequest : " + paid.toJson());
             System.out.println("paid 주문 발생");
             System.out.println("주문 번호: "+ paid.getOrderId());
-           Ordermanagement ordermanagement= new Ordermanagement();
-           
-           
+            
+            Ordermanagement ordermanagement= new Ordermanagement();
+
             ordermanagement.setOrderId(paid.getOrderId());
-           ordermanagement.setOrdermanagementStatus("null");
+            ordermanagement.setOrdermanagementStatus("Paid");
             ordermanagement.setPaymentStatus(paid.getPaymentStatus());
             ordermanagement.setQty(paid.getQty());
             ordermanagement.setStoreName(paid.getStoreName());
-           ordermanagement.setUserName(null);
-           
+            ordermanagement.setUserName(paid.getUserName());
+            ordermanagement.setItemId(paid.getItemId());
+            
             orderManagementRepository.save(ordermanagement);
         }
     }
@@ -51,9 +50,13 @@ public class PolicyHandler{
             System.out.println("##### listener AcceptCancel : " + paymentCanceled.toJson());
             System.out.println("paymentCanceled 주문 발생");
             System.out.println("주문 번호: "+ paymentCanceled.getOrderId());
-            Ordermanagement ordermanagement= new Ordermanagement();
-            ordermanagement.setOrderId(paymentCanceled.getOrderId());
-            ordermanagement.setPaymentStatus("paymentCanceled");
+
+            Optional<Ordermanagement> ordermanagementOptional = orderManagementRepository.findByOrderId(paymentCanceled.getOrderId());
+
+            Ordermanagement ordermanagement= ordermanagementOptional.get();
+            
+            ordermanagement.setPaymentStatus("PaymentCanceled");
+            ordermanagement.setOrdermanagementStatus("PaymentCanceled");
             orderManagementRepository.save(ordermanagement);
         }
     }

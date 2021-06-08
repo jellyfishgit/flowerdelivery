@@ -1,5 +1,7 @@
 package flowerdelivery;
 
+import java.util.Optional;
+
 import javax.persistence.*;
 import org.springframework.beans.BeanUtils;
 
@@ -15,6 +17,8 @@ public class Order {
     private Long itemPrice;
     private String storeName;
     private String userName;
+    private Long itemId;
+    private String orderStatus;
 
     @PostPersist
     public void onPostPersist(){
@@ -31,6 +35,7 @@ public class Order {
         payment.setItemName(this.getItemName());
         payment.setQty(this.getQty());
         payment.setStoreName(this.getStoreName());
+        payment.setItemId(this.getItemId());
         payment.setPaymentStatus("paid");
         
         // mappings goes here
@@ -40,16 +45,30 @@ public class Order {
 
     }
 
-    @PreRemove
-    public void onPreRemove(){
-        
-        System.out.println("onPreRemove");
-        OrderCancelled orderCancelled = new OrderCancelled();
-        BeanUtils.copyProperties(this, orderCancelled);
-        orderCancelled.publishAfterCommit();
 
+     /**
+     * 주문이 취소됨
+     */
+    @PostUpdate
+    private void onPostUpdate(){
+        if( "OrderCancelled".equals(this.getOrderStatus())){
+            // 이벤트를 발송하기 위하여 주문의 상세 정보를 조회
 
+            OrderRepository orderRepository = OrderApplication.applicationContext.getBean(OrderRepository.class);
+            Optional<Order> orderOptional = orderRepository.findById(this.getId());
+            Order order = orderOptional.get();
+
+            OrderCancelled orderCancelled = new OrderCancelled();
+            orderCancelled.setId(order.getId());
+            orderCancelled.setItemId(order.getItemId());
+            orderCancelled.setQty(order.getQty());
+
+            orderCancelled.publish();
+        }
     }
+
+
+
 
 
     public Long getId() {
@@ -95,7 +114,19 @@ public class Order {
         this.userName = userName;
     }
 
+    public Long getItemId() {
+        return itemId;
+    }
 
+    public void setItemId(Long itemId) {
+        this.itemId = itemId;
+    }
 
+    public String getOrderStatus() {
+        return orderStatus;
+    }
 
+    public void setOrderStatus(String orderStatus) {
+        this.orderStatus = orderStatus;
+    }
 }

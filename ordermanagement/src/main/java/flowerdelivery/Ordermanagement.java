@@ -25,46 +25,63 @@ public class Ordermanagement {
     private String paymentStatus;
     private String ordermanagementStatus;
     private String userName;
+    private Long itemId;
 
-    @PostPersist
-    public void onPostPersist(){
+//     @PostPersist
+//     public void onPostPersist(){
     	
-//    	Optional <Ordermanagement> ordermange=ordermanagementRepository.findByOrderId(this.orderId);
+// //    	Optional <Ordermanagement> ordermange=ordermanagementRepository.findByOrderId(this.orderId);
     	
-    	if(this.ordermanagementStatus.equals("decorated")) {
-    		 Decorated decorated = new Decorated();
-    		 decorated.setOrderId(this.orderId);
-    	     BeanUtils.copyProperties(this, decorated);
-    	     decorated.publishAfterCommit();
-    	}
-    	if(this.ordermanagementStatus.equals("received")) {
-    		Received received = new Received();
-    		received.setOrderId(this.orderId);
-            BeanUtils.copyProperties(this, received);
-            received.publishAfterCommit();
-    	}
+//     	// if(this.ordermanagementStatus.equals("decorated")) {
+//     	// 	 Decorated decorated = new Decorated();
+//     	// 	 decorated.setOrderId(this.orderId);
+//     	//      BeanUtils.copyProperties(this, decorated);
+//     	//      decorated.publishAfterCommit();
+//     	// }
+//     	// if(this.ordermanagementStatus.equals("received")) {
+//     	// 	Received received = new Received();
+//     	// 	received.setOrderId(this.orderId);
+//         //     BeanUtils.copyProperties(this, received);
+//         //     received.publishAfterCommit();
+//     	// }
 
-    }
+//     }
     
-//    @PostUpdate
-//    public void onPostUpdate() {
-//    	System.out.println("gogo"+this.orderId);
-//    }
+    @PostUpdate
+    public void onPostUpdate() {
+        System.out.println("Ordermanagement Status Changed "+this.getOrdermanagementStatus());
 
-    @PreRemove
-    public void onPreRemove(){
-//    	System.out.println("status is " + this.getOrdermanagementStatus());
-        Rejected rejected = new Rejected();
-        BeanUtils.copyProperties(this, rejected);
-        rejected.publishAfterCommit();
+        if("Received".equals(this.getOrdermanagementStatus())){
+            Received received = new Received();
+            BeanUtils.copyProperties(this, received);
+            received.publish();
 
+        } else if("Decorated".equals(this.getOrdermanagementStatus())){
+            Decorated decorated = new Decorated();
+            BeanUtils.copyProperties(this, decorated);
+            decorated.publish();
 
-//        RegistrationCanceled registrationCanceled = new RegistrationCanceled();
-//        BeanUtils.copyProperties(this, registrationCanceled);
-//        registrationCanceled.publishAfterCommit();
-
-
+        } else if("Rejected".equals(this.getOrdermanagementStatus())){
+            Rejected rejected = new Rejected();
+            BeanUtils.copyProperties(this, rejected);
+            rejected.publish();
+        }
     }
+
+//     @PreRemove
+//     public void onPreRemove(){
+// //    	System.out.println("status is " + this.getOrdermanagementStatus());
+//         Rejected rejected = new Rejected();
+//         BeanUtils.copyProperties(this, rejected);
+//         rejected.publishAfterCommit();
+
+
+// //        RegistrationCanceled registrationCanceled = new RegistrationCanceled();
+// //        BeanUtils.copyProperties(this, registrationCanceled);
+// //        registrationCanceled.publishAfterCommit();
+
+
+//     }
 
 
     public Long getId() {
@@ -124,7 +141,11 @@ public class Ordermanagement {
         this.userName = userName;
     }
 
+    public Long getItemId() {
+        return itemId;
+    }
 
-
-
+    public void setItemId(Long itemId) {
+        this.itemId = itemId;
+    }
 }

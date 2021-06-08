@@ -16,15 +16,21 @@ public class Payment {
     private String storeName;
     private String itemName;
     private Integer qty;
+    private Long itemId;
+    private String userName;
+
+    @PrePersist
+    public void onPrePersist(){
+        try{
+            Thread.currentThread().sleep((long) (400 + Math.random() * 220));
+       } catch (InterruptedException e){
+           e.printStackTrace();
+       }
+    }
+
 
     @PostPersist
     public void onPostPersist(){
-    		
-            try{
-                 Thread.currentThread().sleep((long) (400 + Math.random() * 220));
-            } catch (InterruptedException e){
-                e.printStackTrace();
-            }
 
     		Paid paid = new Paid();
     		BeanUtils.copyProperties(this, paid);
@@ -98,7 +104,19 @@ public class Payment {
         this.qty = qty;
     }
 
+    public Long getItemId() {
+        return itemId;
+    }
 
+    public void setItemId(Long itemId) {
+        this.itemId = itemId;
+    }
 
+    public String getUserName() {
+        return userName;
+    }
 
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
 }

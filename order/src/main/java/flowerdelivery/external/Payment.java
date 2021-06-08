@@ -9,6 +9,7 @@ public class Payment {
     private String storeName;
     private String itemName;
     private Integer qty;
+    private Long itemId;
 
     public Long getId() {
         return id;
@@ -51,6 +52,12 @@ public class Payment {
     }
     public void setQty(Integer qty) {
         this.qty = qty;
+    }
+    public Long getItemId() {
+        return itemId;
+    }
+    public void setItemId(Long itemId) {
+        this.itemId = itemId;
     }
 
 }

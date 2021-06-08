@@ -1,6 +1,9 @@
 package flowerdelivery;
 
 import flowerdelivery.config.kafka.KafkaProcessor;
+
+import java.util.Optional;
+
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,4 +79,16 @@ public class PolicyHandler{
         }
     }
 
+    @StreamListener(KafkaProcessor.INPUT)
+    public void wheneverItemOutOfStock_ItemOutOfStock(@Payload ItemOutOfStock itemOutOfStock){
+
+        if(itemOutOfStock.isMe())  {
+            System.out.println("\n\n##### listener ItemOutOfStock : " + itemOutOfStock.toJson() + "\n\n");
+            
+            Optional<Order> orderOptional = orderRepository.findById(itemOutOfStock.getOrderId());
+            Order order = orderOptional.get();
+            order.setOrderStatus("OrderCancelled");
+            orderRepository.save(order);
+        }
+    }
 }
