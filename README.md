@@ -1137,7 +1137,15 @@ Transfer-Encoding: chunked
     }
 }
 ```
+신규 아이템 서비스가 추가되어 Menu CQRS를 추가함
 
+![image](https://user-images.githubusercontent.com/80744199/121294062-b905ba80-c927-11eb-8037-655fd6d47b66.png)
+
+
+
+View Page 에 대한 설정
+
+![image](https://user-images.githubusercontent.com/80744199/121294122-cde24e00-c927-11eb-8ab9-cc51e12bc3b5.png)
 
 
 
@@ -1429,7 +1437,7 @@ transfer-encoding: chunked
 }
 ```
 
-## SAGA패턴 
+## SAGA패턴적용
 
 SAGA 패턴은 각 서비스의 트랜잭션은 단일 서비스 내의 데이터를 갱신하는 일종의 로컬 트랜잭션 방법이고 서비스의 트랜잭션이 완료 후에 다음 서비스가 트리거 되어, 트랜잭션을 실행하는 방법입니다.
 
