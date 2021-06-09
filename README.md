@@ -1993,50 +1993,56 @@ root@siege:/# siege -c100 -t60S -r10 -v --content-type "application/json" 'http:
 
 
 ### 오토스케일 아웃
-앞서 CB 는 시스템을 안정되게 운영할 수 있게 해줬지만 사용자의 요청을 100% 받아들여주지 못했기 때문에 이에 대한 보완책으로 자동화된 확장 기능을 적용하고자 한다. 
 
-
-- 결제서비스에 대한 replica 를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 15프로를 넘어서면 replica 를 10개까지 늘려준다:
-
-- 오토스케일 아웃 설정 및 확인
-
-1. kubectl autoscale deploy payment --min=1 --max=10 --cpu-percent=15
-
-2. siege -c255 -t120S -r10 -v --content-type "application/json" --header="Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzY29wZSI6WyJyZWFkIiwid3JpdGUiLCJ0cnVzdCJdLCJjb21wYW55IjoiVWVuZ2luZSIsImV4cCI6MTYyMjAxNDg0NSwiYXV0aG9yaXRpZXMiOlsiUk9MRV9UUlVTVEVEX0NMSUVOVCIsIlJPTEVfQ0xJRU5UIl0sImp0aSI6ImtOVDBzeExjV3ZMTzhMYU45RmQveG9uMmUzQT0iLCJjbGllbnRfaWQiOiJ1ZW5naW5lLWNsaWVudCJ9.Oye_jH01JyHIoXlZMJPCN0tOb1uphRrqXBAl9u3piwsOGoNfYeSBeRAgaRS25D417_02-suI_zUAhVA5CdTH5CcwWQhJVZ_L7Vw_bFpDeobdLT0NrPih5Du0tDaxeLIx2Rw6WUfUQNrMmvdjWp4PYYIa3AGExsChqrCdRRMEvwe5aTvr5YyD77VqedDUy2AF5Ak6wgdFpc_fnBJBRAX84-FZILMxsxxD-CZnSrLQMOYI2oH5JFaWwIX525DnbmCgLySelxehtkUEaxCKS55uwiS76KH20RIzMo5QfjhM-45LZ2tuooz3b9o-cjSjjjOLKpQito6PP75dhqP1PrxLTA" 'http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders POST {"storeName": "flowershop", "itemName": "rose", "qty": "1", "itemPrice": "20000", "userName": "LEE"}'
-
-3. kubectl get deploy payment -w 
-
+payment 서비스에 HPA를 설정한다.  평균대비 CPU 50퍼 초과시 6개까지 pod 추가 
 
 ```
-kubectl autoscale deploy pay --min=1 --max=10 --cpu-percent=15
+C:\workspace\flowerdelivery>kubectl autoscale deployment.apps/payment --cpu-percent=50 --min=1 --max=6
+horizontalpodautoscaler.autoscaling/payment autoscaled
+
+C:\workspace\flowerdelivery>kubectl get all
+NAME                           READY   STATUS    RESTARTS   AGE
+pod/gateway-6f67fb9bf9-t2zc5   1/1     Running   0          26m
+pod/order-96bb9df98-spgvl      1/1     Running   0          9m36s
+pod/payment-7c657f9b-vkvzr     1/1     Running   0          28m
+
+NAME                 TYPE           CLUSTER-IP       EXTERNAL-IP                                                                   PORT(S)          AGE
+service/gateway      LoadBalancer   10.100.17.208    a1f4f458259eb4e4abd9bd67ef8211db-641677351.ap-northeast-2.elb.amazonaws.com   8080:30760/TCP   26m
+service/kubernetes   ClusterIP      10.100.0.1       <none>                                                                        443/TCP          8h
+service/order        ClusterIP      10.100.108.3     <none>                                                                        8080/TCP         9m36s
+service/payment      ClusterIP      10.100.241.200   <none>                                                                        8080/TCP         28m
+
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/gateway   1/1     1            1           26m
+deployment.apps/order     1/1     1            1           9m36s
+deployment.apps/payment   1/1     1            1           28m
+
+NAME                                 DESIRED   CURRENT   READY   AGE
+replicaset.apps/gateway-6f67fb9bf9   1         1         1       26m
+replicaset.apps/order-96bb9df98      1         1         1       9m36s
+replicaset.apps/payment-7c657f9b     1         1         1       28m
+
+NAME                                          REFERENCE            TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/payment   Deployment/payment   6%/50%    1         6         1          17s
+
 ```
-- CB 에서 했던 방식대로 워크로드를 2분 동안 걸어준다.
-```
-siege -c100 -t120S -r10 --content-type "application/json" 'http://localhost:8081/orders POST {"item": "chicken"}'
-```
-- 오토스케일이 어떻게 되고 있는지 모니터링을 걸어둔다:
-```
-kubectl get deploy pay -w
-```
-- 어느정도 시간이 흐른 후 (약 30초) 스케일 아웃이 벌어지는 것을 확인할 수 있다:
-```
-NAME    DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
-pay     1         1         1            1           17s
-pay     1         2         1            1           45s
-pay     1         4         1            1           1m
-:
-```
-- siege 의 로그를 보아도 전체적인 성공률이 높아진 것을 확인 할 수 있다. 
-```
-Transactions:		        5078 hits
-Availability:		       92.45 %
-Elapsed time:		       120 secs
-Data transferred:	        0.34 MB
-Response time:		        5.60 secs
-Transaction rate:	       17.15 trans/sec
-Throughput:		        0.01 MB/sec
-Concurrency:		       96.02
-```
+payment 서비스에 대한 모니터링을 걸어두고  siege 로 부하테스트를 진행하면 
+
+![image](https://user-images.githubusercontent.com/80744199/121320401-17db2c00-c948-11eb-8b44-39891a3b14f5.png)
+
+
+아래와 같이 scale out 되는것을 확인할 수 있다. 
+
+![image](https://user-images.githubusercontent.com/80744199/121320618-4953f780-c948-11eb-87ea-7651c9385e5d.png)
+
+
+
+pod 자원을 모니터링 
+
+![image](https://user-images.githubusercontent.com/80744199/121320485-2f1a1980-c948-11eb-9a43-b13335d4de64.png)
+
+
+
 
 
 ## 무정지 운영 CI/CD
