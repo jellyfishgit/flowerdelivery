@@ -2160,7 +2160,7 @@ root@order-58dd6cf76f-4wsrs:/# env
 
 env 확인
 
-https://user-images.githubusercontent.com/80744199/121285490-71783200-c919-11eb-923b-a2267ccd00e6.png
+![image](https://user-images.githubusercontent.com/80744199/121285490-71783200-c919-11eb-923b-a2267ccd00e6.png)
 
 echo 로 환경변수 확인
 
