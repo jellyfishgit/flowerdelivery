@@ -18,8 +18,8 @@ import feign.hystrix.SetterFactory;
 
 
 //@FeignClient(name="payment", url="http://localhost:8082", configuration=PaymentService.PaymentServiceConfiguration.class, fallback=PaymentService.PaymentServiceFallback.class)
-//@FeignClient(name="payment", url="http://payment:8080")
-@FeignClient(name="payment", url="http://localhost:8082")
+@FeignClient(name="payment", url="http://payment:8080")
+//@FeignClient(name="payment", url="http://localhost:8082")
 public interface PaymentService {
 
     @RequestMapping(method= RequestMethod.POST, path="/payments")
