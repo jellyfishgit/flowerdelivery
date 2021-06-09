@@ -1,7 +1,7 @@
 # flowerdelivery
 intensive lv2 course  group 3
 
-# 꽃 배달 서비스 ( 3조 리포트 )
+# 꽃 배달 서비스 ( 3조 리포트 - 이기정 개인 평가  )
 ![image](https://user-images.githubusercontent.com/80744199/117618717-52b33e00-b1a9-11eb-917b-6dafcedd86e8.png)
 
 # Table of contents
@@ -126,10 +126,15 @@ intensive lv2 course  group 3
 * MSAEz 로 모델링한 이벤트스토밍 결과: 
 => 꽃배달 서비스 http://www.msaez.io/#/storming/5nRSKjrx87XLm3BPJHqFNcoc9ZT2/mine/89e807d4cea32297228749710093e35c
 
+3조 이기정 개인 모델링 링크 
+http://www.msaez.io/#/storming/5nRSKjrx87XLm3BPJHqFNcoc9ZT2/mine/508af93c82fba739ecbecb2d68f9701d
+
+
 ## 전체
 ![image](https://user-images.githubusercontent.com/80744199/118610060-591f6680-b7f6-11eb-92d2-247747f6d08f.png)
 
-
+신규 서비스 추가 된 버전 
+![image](https://user-images.githubusercontent.com/80744199/121293773-27964880-c927-11eb-8aa9-31b33d5ad40d.png)
 
 ## 주문
 ![image](https://user-images.githubusercontent.com/80744199/118610157-6f2d2700-b7f6-11eb-9325-2cb570182359.png)
@@ -143,7 +148,8 @@ intensive lv2 course  group 3
 ## 배송
 ![image](https://user-images.githubusercontent.com/80744199/118610263-8b30c880-b7f6-11eb-8434-5a7bea500fd0.png)
 
-
+##상품
+![image](https://user-images.githubusercontent.com/80744199/121293704-03d30280-c927-11eb-92b4-791fbdfd4b6f.png)
 
 
 
