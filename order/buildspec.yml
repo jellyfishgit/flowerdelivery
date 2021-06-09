@@ -46,12 +46,7 @@ phases:
           kind: Service
           metadata:
             name: $_PROJECT_NAME
-#            namespace: flowerdelivery
-            namespace: 
-              - valueFrom:
-                  configMapKeyRef:
-                    name: flowerdelivery-config
-                    key: nsname
+            namespace: flowerdelivery            
             labels:
               app: $_PROJECT_NAME
           spec:
@@ -85,6 +80,12 @@ phases:
                     image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$_PROJECT_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION
                     ports:
                       - containerPort: 8080
+                    env:
+                      - name: namespacename
+                        valueFrom:
+                          configMapKeyRef:
+                            name: flowerdelivery-config
+                            key: nsname                    
                     readinessProbe:
                       httpGet:
                         path: '/orders'
@@ -102,6 +103,8 @@ phases:
                       periodSeconds: 5
                       failureThreshold: 5
           EOF
+        - echo configmap test
+        - echo nsname $namespacename
 cache:
   paths:
     - '/root/.m2/**/*'
