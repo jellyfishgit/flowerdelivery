@@ -148,7 +148,7 @@ http://www.msaez.io/#/storming/5nRSKjrx87XLm3BPJHqFNcoc9ZT2/mine/508af93c82fba73
 ## 배송
 ![image](https://user-images.githubusercontent.com/80744199/118610263-8b30c880-b7f6-11eb-8434-5a7bea500fd0.png)
 
-##상품
+## 상품
 ![image](https://user-images.githubusercontent.com/80744199/121293704-03d30280-c927-11eb-92b4-791fbdfd4b6f.png)
 
 
@@ -159,6 +159,9 @@ http://www.msaez.io/#/storming/5nRSKjrx87XLm3BPJHqFNcoc9ZT2/mine/508af93c82fba73
 ![image](https://user-images.githubusercontent.com/80744199/118609005-49ebe900-b7f5-11eb-98d0-3871a043d721.png)
 
 
+상품(아이템)서비스 신규 추가 
+
+![image](https://user-images.githubusercontent.com/80744199/121293370-7abbcb80-c926-11eb-9812-1baac649602c.png)
 
 
 
@@ -169,6 +172,11 @@ http://www.msaez.io/#/storming/5nRSKjrx87XLm3BPJHqFNcoc9ZT2/mine/508af93c82fba73
 적용 아키텍쳐는 아래와 같으며
 
 ![image](https://user-images.githubusercontent.com/80744199/119110084-bae10a00-ba5c-11eb-8fb4-ec4ef68e4421.png)
+
+
+상품관리를 위해 아이템 서비스 신규 추가
+
+![image](https://user-images.githubusercontent.com/80744199/121293025-e6516900-c925-11eb-9ad3-3921ee9985e4.png)
 
 각 서비스별 구동커맨드는 아래와 같음
 ```
@@ -192,6 +200,9 @@ cd delivery
 mvn spring-boot:run
 포트 : 8084 
 
+cd item
+mvn spring-boot:run
+포트 : 8085 
 
 ```
 
@@ -200,7 +211,7 @@ mvn spring-boot:run
 - Entity Pattern 과 Repository Pattern 을 적용하여 JPA 를 통하여 데이터 접근 어댑터를 개발하였는가
 
 MSA 모델링 도구 ( MSA Easy .io )를 사용하여 도출된 핵심 어그리게이트를 Entity로 선언하였다. 
-=> 주문(order), 결제(payment), 주문관리(ordermanagement), 배송(delivery) 
+=> 주문(order), 결제(payment), 주문관리(ordermanagement), 배송(delivery), 상품(item)
 
 아래 코드는 주문 Entity에 대한 구현내용이다. 
 ```
