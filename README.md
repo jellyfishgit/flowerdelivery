@@ -2164,3 +2164,66 @@ root@order-58dd6cf76f-4wsrs:/# echo $namespacename
 flowerdelivery
 ```
 
+## livenessProbe 
+
+주문관리 서비스 (ordermanagement)의 Pod 생성 스크립트에 livenessProbe 구문을 추가한다. 
+
+Pod 내 /tmp/healthy 파일을 체크함
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ordermanagement
+  labels:
+    app: ordermanagement
+spec:
+  containers:
+  - name: ordermanagement
+    image: 583098675101.dkr.ecr.ap-northeast-2.amazonaws.com/ordermanagement:latest
+    livenessProbe:
+      exec:
+        command:
+        - cat 
+        - /tmp/healthy
+      initialDelaySeconds: 5
+      periodSeconds: 5
+```
+
+pod 생성 
+```
+C:\workspace\flowerdelivery\ordermanagement>kubectl create -f kube-liveness.yml
+pod/ordermanagement created
+```
+
+
+Pod를 구동하면 running 으로 나오지만 
+/tmp/healthy 파일이 없기 때문에 계속 restart 된다. "셀프 힐링"
+
+![image](https://user-images.githubusercontent.com/10009227/121382800-ea12d900-c981-11eb-91ee-e7d0854590f3.png)
+
+
+pod describe 로 확인하면  livenessProbe 실패 로그가 확인됨 
+![image](https://user-images.githubusercontent.com/10009227/121382922-06167a80-c982-11eb-8d08-733175acd096.png)
+
+
+ordermanagement Pod로 진입하여  /tmp/healthy 를 생성하면 restart가 중단되고, Pod가 정상동작한다. 
+
+```
+C:\workspace\flowerdelivery>kubectl exec -it pod/ordermanagement /bin/bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [POD] -- [COMMAND] instead.
+
+root@ordermanagement:/tmp# touch /tmp/healthy
+root@ordermanagement:/tmp# ls -al
+total 0
+drwxrwxrwt 1 root root 196 Jun  9 15:17 .
+drwxr-xr-x 1 root root  40 Jun  9 15:17 ..
+-rw-r--r-- 1 root root   0 Jun  9 15:17 healthy
+drwxr-xr-x 1 root root  15 Jun  9 15:17 hsperfdata_root
+-rw-r--r-- 1 root root   0 Jun  9 15:17 kafka-client-jaas-config-placeholder251220694542028385conf
+drwxr-xr-x 2 root root   6 Jun  9 15:17 tomcat-docbase.5300142031336227160.8080
+drwxr-xr-x 3 root root  18 Jun  9 15:17 tomcat.5226006221561639455.8080
+```
+
+3회 실패 후  healthy 파일 생성되어 4번째에 성공 
+Liveness:       exec [cat /tmp/healthy] delay=5s timeout=1s period=5s #success=1 #failure=3  
