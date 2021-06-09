@@ -1485,10 +1485,338 @@ OrderManagement 서비스에서 주문을 수신하게 작성되어 있다.
 ![image](https://user-images.githubusercontent.com/44644430/119435389-f9284300-bd54-11eb-902a-87c7abfee9e3.png)
 
 
+SAGA 패턴 - 이기정 ver
+
+신규 추가한 상품(아이템)서비스에는 재고 수량을 관리한다.
+
+주문 -> 결제 -> 상품 재고 차감 Flow 이며
+재고가 부족할 경우 주문 -> 결제 -> 상품 재고차감 !!!!재고 부족 시 재고차감되지 않음 -> 주문취소 이벤트 -> 결제취소 이벤트 -> 재고 차감분 복구 ( 재고차감이벤트로 발생한 경우는 복구 하지 않음 )
+
+위 Flow로 SAGA 패턴을 구현하였다.
+
+장미세트 상품 5개 추가
+
+```
+C:\workspace\flowerdelivery>http POST http://localhost:8085/items itemName="roses set n1"   storeName=KJSHOP stockCnt=5 itemPrice=50000
+HTTP/1.1 201
+Content-Type: application/json;charset=UTF-8
+Date: Wed, 09 Jun 2021 04:49:35 GMT
+Location: http://localhost:8085/items/1     
+Transfer-Encoding: chunked
+
+{
+    "_links": {
+        "item": {
+            "href": "http://localhost:8085/items/1"
+        },
+        "self": {
+            "href": "http://localhost:8085/items/1"
+        }
+    },
+    "itemName": "roses set n1",
+    "itemPrice": 50000,
+    "stockCnt": 5,
+    "storeName": "KJSHOP"
+}
+```
+LEEKIJUNG 이 3개 시켜서 재고 2개 남음
+
+```
+C:\workspace\flowerdelivery>http POST http://localhost:8081/orders storeName=KJSHOP itemId=1 itemName="roses set n1" qty=3 itemPrice=50000 userName=LEEKIJUNG
+HTTP/1.1 201 
+Content-Type: application/json;charset=UTF-8
+Date: Wed, 09 Jun 2021 04:53:12 GMT
+Location: http://localhost:8081/orders/8
+Transfer-Encoding: chunked
+
+{
+    "_links": {
+        "order": {
+            "href": "http://localhost:8081/orders/8"
+        },
+        "self": {
+            "href": "http://localhost:8081/orders/8"
+        }
+    },
+    "itemId": 1,
+    "itemName": "roses set n1",
+    "itemPrice": 50000,
+    "orderStatus": null,
+    "qty": 3,
+    "storeName": "KJSHOP",
+    "userName": "LEEKIJUNG"
+}
+
+C:\workspace\flowerdelivery>http GET http://localhost:8085/items
+HTTP/1.1 200 
+Content-Type: application/hal+json;charset=UTF-8
+Date: Wed, 09 Jun 2021 04:53:21 GMT
+Transfer-Encoding: chunked
+
+{
+    "_embedded": {
+        "items": [
+            {
+                "_links": {
+                    "item": {
+                        "href": "http://localhost:8085/items/1"
+                    },
+                    "self": {
+                        "href": "http://localhost:8085/items/1"
+                    }
+                },
+                "itemName": "roses set n1",
+                "itemPrice": 50000,
+                "stockCnt": 2,
+                "storeName": "KJSHOP"
+            }
+        ]
+    },
+    "_links": {
+        "profile": {
+            "href": "http://localhost:8085/profile/items"
+        },
+        "self": {
+            "href": "http://localhost:8085/items{?page,size,sort}",
+            "templated": true
+        }
+    },
+    "page": {
+        "number": 0,
+        "size": 20,
+        "totalElements": 1,
+        "totalPages": 1
+    }
+}
+```
+
+HONG 이 3개 추가 주문함
+
+```
+C:\workspace\flowerdelivery>http POST http://localhost:8081/orders storeName=KJSHOP itemId=1 itemName="roses set n1" qty=3 itemPrice=50000 userName=HONG
+HTTP/1.1 201 
+Content-Type: application/json;charset=UTF-8
+Date: Wed, 09 Jun 2021 04:53:49 GMT
+Location: http://localhost:8081/orders/10
+Transfer-Encoding: chunked
+
+{
+    "_links": {
+        "order": {
+            "href": "http://localhost:8081/orders/10"
+        },
+        "self": {
+            "href": "http://localhost:8081/orders/10"
+        }
+    },
+    "itemId": 1,
+    "itemName": "roses set n1",
+    "itemPrice": 50000,
+    "orderStatus": null,
+    "qty": 3,
+    "storeName": "KJSHOP",
+    "userName": "HONG"
+}
+```
+
+상품 재고는 그대로 2개 이며 
+
+```
+C:\workspace\flowerdelivery>http GET http://localhost:8085/items
+HTTP/1.1 200 
+Content-Type: application/hal+json;charset=UTF-8
+Date: Wed, 09 Jun 2021 04:54:13 GMT
+Transfer-Encoding: chunked
+
+{
+    "_embedded": {
+        "items": [
+            {
+                "_links": {
+                    "item": {
+                        "href": "http://localhost:8085/items/1"
+                    },
+                    "self": {
+                        "href": "http://localhost:8085/items/1"
+                    }
+                },
+                "itemName": "roses set n1",
+                "itemPrice": 50000,
+                "stockCnt": 2,
+                "storeName": "KJSHOP"
+            }
+        ]
+    },
+    "_links": {
+        "profile": {
+            "href": "http://localhost:8085/profile/items"
+        },
+        "self": {
+            "href": "http://localhost:8085/items{?page,size,sort}",
+            "templated": true
+        }
+    },
+    "page": {
+        "number": 0,
+        "size": 20,
+        "totalElements": 1,
+        "totalPages": 1
+    }
+}
+```
+2번쨰 주문는 주문취소상태 2번째 결제는 결제취소상태로 각각 변경됨 
+
+```
+C:\workspace\flowerdelivery>http GET http://localhost:8081/orders
+HTTP/1.1 200 
+Content-Type: application/hal+json;charset=UTF-8
+Date: Wed, 09 Jun 2021 04:54:35 GMT
+Transfer-Encoding: chunked
+
+{
+    "_embedded": {
+        "orders": [
+            {
+                "_links": {
+                    "order": {
+                        "href": "http://localhost:8081/orders/8"
+                    },
+                    "self": {
+                        "href": "http://localhost:8081/orders/8"
+                    }
+                },
+                "itemId": 1,
+                "itemName": "roses set n1",
+                "itemPrice": 50000,
+                "orderStatus": null,
+                "qty": 3,
+                "storeName": "KJSHOP",
+                "userName": "LEEKIJUNG"
+            },
+            {
+                "_links": {
+                    "order": {
+                        "href": "http://localhost:8081/orders/10"
+                    },
+                    "self": {
+                        "href": "http://localhost:8081/orders/10"
+                    }
+                },
+                "itemId": 1,
+                "itemName": "roses set n1",
+                "itemPrice": 50000,
+                "orderStatus": "OrderCancelled",
+                "qty": 3,
+                "storeName": "KJSHOP",
+                "userName": "HONG"
+            }
+        ]
+    },
+    "_links": {
+        "profile": {
+            "href": "http://localhost:8081/profile/orders"
+        },
+        "self": {
+            "href": "http://localhost:8081/orders{?page,size,sort}",
+            "templated": true
+        }
+    },
+    "page": {
+        "number": 0,
+        "size": 20,
+        "totalElements": 2,
+        "totalPages": 1
+    }
+}
+
+C:\workspace\flowerdelivery>http GET http://localhost:8082/payments
+HTTP/1.1 200 
+Content-Type: application/hal+json;charset=UTF-8
+Date: Wed, 09 Jun 2021 04:54:21 GMT
+Transfer-Encoding: chunked
+
+{
+    "_embedded": {
+        "payments": [
+            {
+                "_links": {
+                    "payment": {
+                        "href": "http://localhost:8082/payments/1"
+                    },
+                    "self": {
+                        "href": "http://localhost:8082/payments/1"
+                    }
+                },
+                "itemId": 1,
+                "itemName": "roses set n1",
+                "itemPrice": 50000,
+                "orderId": 8,
+                "paymentStatus": "paid",
+                "qty": 3,
+                "storeName": "KJSHOP",
+                "userName": null
+            },
+            {
+                "_links": {
+                    "payment": {
+                        "href": "http://localhost:8082/payments/2"
+                    },
+                    "self": {
+                        "href": "http://localhost:8082/payments/2"
+                    }
+                },
+                "itemId": 1,
+                "itemName": "roses set n1",
+                "itemPrice": 50000,
+                "orderId": 10,
+                "paymentStatus": "paid",
+                "qty": 3,
+                "storeName": "KJSHOP",
+                "userName": null
+            },
+            {
+                "_links": {
+                    "payment": {
+                        "href": "http://localhost:8082/payments/3"
+                    },
+                    "self": {
+                        "href": "http://localhost:8082/payments/3"
+                    }
+                },
+                "itemId": null,
+                "itemName": null,
+                "itemPrice": null,
+                "orderId": 10,
+                "paymentStatus": "paymentCanceled",
+                "qty": null,
+                "storeName": null,
+                "userName": null
+            }
+        ]
+    },
+    "_links": {
+        "profile": {
+            "href": "http://localhost:8082/profile/payments"
+        },
+        "self": {
+            "href": "http://localhost:8082/payments{?page,size,sort}",
+            "templated": true
+        }
+    },
+    "page": {
+        "number": 0,
+        "size": 20,
+        "totalElements": 3,
+        "totalPages": 1
+    }
+}
+```
+
+
 
 # 운영
 
-## CI/CD 설정
+## CICD설정
 
 AWS Codebuild 를 활용하여 CI/CD 를 설정하였다. 
 
@@ -1626,272 +1954,43 @@ cache:
 ![image](https://user-images.githubusercontent.com/80744199/119442348-a2296a80-bd62-11eb-8b45-3d3ef9da96a2.png)
 
 
+개인 클라우드에 재구축함 
 
-## 배포 
-
-**AWS IAM User Access Key 생성**
-
-IAM > 액세스 관리 > 사용자 > 보안 자격 증명
-
-액세스 키 만들기 > Access Key, Private Key 별도 보관
-
-**AWS ECR 생성**
-
-
-ECR > 리포지토리 생성
-
-서비스 별 리포지토리 생성
-
-052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-delivery
-
-052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-gateway
-
-052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-order
-
-052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-ordermanagement
-
-052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-payment
-
-
-**클러스터 생성 EKS**
-
-eksctl create cluster --name user03-flowerdelivery --version 1.17 --nodegroup-name standard-workers --node-type t3.medium --nodes 4 --nodes-min 1 --nodes-max 4
-
-
-**클러스터 토큰 가져오기**
-
-aws eks --region ap-northeast-2 update-kubeconfig --name user03-flowerdelivery
-
-
-**ECR 로그인**
-
-docker login --username AWS -p $(aws ecr get-login-password --region ap-northeast-2) 052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/
-
-**Maven 빌드**
-
-mvn package -Dmaven.test.skip=true
-
-**도커라이징**
-
-docker build -t 052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-delivery:latest .
-
-docker build -t 052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-gateway:latest .
-
-docker build -t 052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-order:latest .
-
-docker build -t 052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-order:latest .
-
-docker build -t 052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-payment:latest .
-
-docker build -t 052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-oauth:latest .
-
-**ECR 도커 이미지 푸시**
-
-docker push 052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-delivery:latest
-
-docker push 052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-gateway:latest
-
-docker push 052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-order:latest
-
-docker push 052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-ordermanagement:latest
-
-docker push 052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-payment:latest
-
-docker push 052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-oauth:latest
-
-
-**컨테이너라이징**
-
-<디플로이 생성>
-
-kubectl create deploy delivery --image=052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-delivery:latest
-
-kubectl expose deploy delivery --type=ClusterIP --port=8080
-
-kubectl create deploy gateway--image=052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-gateway:latest
-
-kubectl expose deploy gateway --type=LoadBalancer --port=8080
-
-kubectl create deploy order --image=052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-order:latest
-
-kubectl expose deploy order --type=ClusterIP --port=8080
-
-kubectl create deploy ordermanagement --image=052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-ordermanagement:latest
-
-kubectl expose deploy ordermanagement --type=ClusterIP --port=8080
-
-kubectl create deploy payment --image=052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-payment:latest
-
-kubectl expose deploy payment --type=ClusterIP" --port=8080
-
-kubectl create deploy oauth --image=052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-oauth :latest
-
-kubectl expose deploy oauth --type=ClusterIP --port=8080
-
-
+![image](https://user-images.githubusercontent.com/80744199/121292470-f7e64100-c924-11eb-9147-fccda792ff8e.png)
 
 
 
 ## 동기식 호출 / 서킷 브레이킹 / 장애격리
 
-* 서킷 브레이킹 프레임워크의 선택: Spring FeignClient + Hystrix 옵션을 사용하여 구현함
+서킷 브레이킹 프레임워크의 선택: Spring FeignClient + Hystrix 옵션을 사용하여 구현함
+주문 - 결제간 신규 주문시 결제처리를 RestFul Req/Res 로 구현하였으며, 결제 요청이 과도할 경우 서킷 브레이크를 통해 장애 격리를 하려고 한다.
 
-시나리오는 단말앱(app)-->결제(pay) 시의 연결을 RESTful Request/Response 로 연동하여 구현이 되어있고, 결제 요청이 과도할 경우 CB 를 통하여 장애격리.
+Hystrix 를 설정: 요청처리 쓰레드에서 처리시간이 610 밀리가 넘어서기 시작하여 어느정도 유지되면 CB 회로가 닫히도록 (요청을 빠르게 실패처리, 차단) 설정
 
-- Hystrix 를 설정:  요청처리 쓰레드에서 처리시간이 610 밀리가 넘어서기 시작하여 어느정도 유지되면 CB 회로가 닫히도록 (요청을 빠르게 실패처리, 차단) 설정
-```
-# application.yml
+![image](https://user-images.githubusercontent.com/80744199/121296950-785c7000-c92c-11eb-9e50-3b561bdcefd3.png)
 
-hystrix:
-  command:
-    # 전역설정
-    default:
-      execution.isolation.thread.timeoutInMilliseconds: 610
+결제 서비스의 부하 처리 - 400 밀리에서 증감 220 밀리 정도 왔다갔다 하게
 
-```
+![image](https://user-images.githubusercontent.com/80744199/121297163-da1cda00-c92c-11eb-9529-cc28dd361489.png)
 
-- 피호출 서비스(결제:pay) 의 임의 부하 처리 - 400 밀리에서 증감 220 밀리 정도 왔다갔다 하게
-```
-# (payment) Payment.java (Entity)
-
-     @PostPersist
-    public void onPostPersist(){
-    		
-            try{
-                 Thread.currentThread().sleep((long) (400 + Math.random() * 220));
-            } catch (InterruptedException e){
-                e.printStackTrace();
-            }
-
-    		Paid paid = new Paid();
-    		BeanUtils.copyProperties(this, paid);
-    		paid.publishAfterCommit();
-    }
-```
-
-* 부하테스터 siege 툴을 통한 서킷 브레이커 동작 확인:
-- 동시사용자 255명
-- 60초 동안 실시
+부하테스터 siege 툴을 통한 서킷 브레이커 동작 확인:
+동시사용자 100명
+60초 동안 실시
 
 ```
-$ siege -c255 -t60S -r10 -v --content-type "application/json" --header="Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzY29wZSI6WyJyZWFkIiwid3JpdGUiLCJ0cnVzdCJdLCJjb21wYW55IjoiVWVuZ2luZSIsImV4cCI6MTYyMjAxNDg0NSwiYXV0aG9yaXRpZXMiOlsiUk9MRV9UUlVTVEVEX0NMSUVOVCIsIlJPTEVfQ0xJRU5UIl0sImp0aSI6ImtOVDBzeExjV3ZMTzhMYU45RmQveG9uMmUzQT0iLCJjbGllbnRfaWQiOiJ1ZW5naW5lLWNsaWVudCJ9.Oye_jH01JyHIoXlZMJPCN0tOb1uphRrqXBAl9u3piwsOGoNfYeSBeRAgaRS25D417_02-suI_zUAhVA5CdTH5CcwWQhJVZ_L7Vw_bFpDeobdLT0NrPih5Du0tDaxeLIx2Rw6WUfUQNrMmvdjWp4PYYIa3AGExsChqrCdRRMEvwe5aTvr5YyD77VqedDUy2AF5Ak6wgdFpc_fnBJBRAX84-FZILMxsxxD-CZnSrLQMOYI2oH5JFaWwIX525DnbmCgLySelxehtkUEaxCKS55uwiS76KH20RIzMo5QfjhM-45LZ2tuooz3b9o-cjSjjjOLKpQito6PP75dhqP1PrxLTA" 'http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders POST {"storeName": "flowershop", "itemName": "rose", "qty": "1", "itemPrice": "20000", "userName": "LEE"}'
-
-** SIEGE 4.0.4
-** Preparing 255 concurrent users for battle.
-The server is now under siege...
-HTTP/1.1 201     0.87 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201     0.89 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201     0.91 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201     0.95 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201     1.01 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201     1.02 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201     1.04 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201     1.03 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201     1.05 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201     1.06 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201     1.80 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201     1.82 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201     1.77 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201     1.91 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201     1.87 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201     1.99 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201     2.00 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201     1.91 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201     2.01 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-:
-:
-* 요청이 과도하여 CB를 동작함 요청을 차단
-HTTP/1.1 500    30.07 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    30.09 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    30.12 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    30.15 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    30.20 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    23.59 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    30.15 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    30.17 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    30.17 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    30.22 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    30.17 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    30.11 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-:
-:
-* 요청을 어느정도 돌려보내고나니, 기존에 밀린 일들이 처리되었고, 회로를 닫아 요청을 다시 받기 시작
-HTTP/1.1 201    30.30 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    23.19 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    23.08 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    30.41 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    30.78 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    23.34 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    23.43 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    30.89 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    23.56 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    23.56 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    23.65 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    23.27 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    23.15 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    23.16 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    23.35 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    23.35 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    23.45 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-:
-:
-* 다시 요청이 쌓이기 시작하여 건당 처리시간이 610 밀리를 살짝 넘기기 시작 => 회로 열기 => 요청 실패처리
-HTTP/1.1 500    31.89 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    32.00 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    31.91 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    31.91 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    32.58 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    34.74 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    34.73 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    34.82 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    34.89 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    34.89 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    34.88 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    34.82 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 500    34.83 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-:
-:
-* 건당 (쓰레드당) 처리시간이 610 밀리 미만으로 회복) => 요청 수락
-HTTP/1.1 201    25.57 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    25.50 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    25.20 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    25.31 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    25.16 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    25.13 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    24.63 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    24.85 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    24.90 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    25.04 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    24.76 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    24.57 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    24.68 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    24.87 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    24.64 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    24.60 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-HTTP/1.1 201    24.59 secs:     271 bytes ==> POST http://a95c41608c8d343318638531b3252fb7-1750438090.ap-northeast-2.elb.amazonaws.com:8080/orders
-
-:
-:
-
-Lifting the server siege...
-Transactions:                    430 hits
-Availability:                  89.96 %
-Elapsed time:                  59.35 secs
-Data transferred:               0.12 MB
-Response time:                 22.24 secs
-Transaction rate:               7.25 trans/sec
-Throughput:                     0.00 MB/sec
-Concurrency:                  161.13
-Successful transactions:         430
-Failed transactions:              48
-Longest transaction:           42.37
-Shortest transaction:           0.87
-
+C:\workspace\flowerdelivery>kubectl exec -it --namespace istio-cb-ns siege bin/bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [POD] -- [COMMAND] instead.
+root@siege:/# siege -c100 -t60S -r10 -v --content-type "application/json" 'http://a64bd0a2780534decae2fcf1f45cdc96-2126150052.ap-northeast-2.elb.amazonaws.com:8080/orders POST {"storeName": "flowershop", "itemName": "rose", "qty": "1", "itemPrice": "20000", "userName": "LEE", "itemId": "1"}'
 ```
-- 운영시스템은 죽지 않고 지속적으로 CB 에 의하여 적절히 회로가 열림과 닫힘이 벌어지면서 자원을 보호하고 있음을 보여줌. 하지만, 63.55% 가 성공하였고, 46%가 실패했다는 것은 고객 사용성에 있어 좋지 않기 때문에 Retry 설정과 동적 Scale out (replica의 자동적 추가,HPA) 을 통하여 시스템을 확장 해주는 후속처리가 필요.
 
-- Retry 의 설정 (istio)
-- Availability 가 높아진 것을 확인 (siege)
+요청 상태에 따라 회로 열기/닫기가 반복되는 모습
+
+![image](https://user-images.githubusercontent.com/80744199/121304446-4ef51180-c937-11eb-9f76-f7d33c772e85.png)
+
+![image](https://user-images.githubusercontent.com/80744199/121304595-85329100-c937-11eb-909d-1fbf1f4dcd72.png)
+
+고객 사용성이 좋지 않기 때문에 오토스케일 아웃 등의 설정을 통해 후속 처리가 필요함
+
 
 ### 오토스케일 아웃
 앞서 CB 는 시스템을 안정되게 운영할 수 있게 해줬지만 사용자의 요청을 100% 받아들여주지 못했기 때문에 이에 대한 보완책으로 자동화된 확장 기능을 적용하고자 한다. 
