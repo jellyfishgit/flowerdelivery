@@ -2047,117 +2047,125 @@ pod 자원을 모니터링
 
 ## 무정지 운영 CI/CD
 
-- 플랫폼에서 제공하는 파피프라인을 적용하여 서비스를 클라우드에 배포하였는가?
 
-- Contract Test : 자동화된 경계 테스트를 통하여 구현 오류나 API 계약위반을 미리 차단 가능한가 ?
-
-- Advanced 
-	Canary Deploy : 
-	Shadow Deploy A/B Testing : 
-
-
-
-* 먼저 무정지 재배포가 100% 되는 것인지 확인하기 위해서 Autoscaler 이나 CB 설정을 제거함
-
-- seige 로 배포작업 직전에 워크로드를 모니터링 함.
-
-
-- 무정지 배포 설정 및 확인 순서
- 
-1. siege -c100 -t120S -r10 -v --content-type "application/json" --header="Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzY29wZSI6WyJyZWFkIiwid3JpdGUiLCJ0cnVzdCJdLCJjb21wYW55IjoiVWVuZ2luZSIsImV4cCI6MTYyMTk5NDk0MSwiYXV0aG9yaXRpZXMiOlsiUk9MRV9UUlVTVEVEX0NMSUVOVCIsIlJPTEVfQ0xJRU5UIl0sImp0aSI6InFjWnRoQjB5NUJqWDhOWkNHOVFsNlRPTGpTUT0iLCJjbGllbnRfaWQiOiJ1ZW5naW5lLWNsaWVudCJ9.XeAYARc3SNMC6sJVzDCQJ1TwOqLC_aNRtdx8rjGZetHgxBkxdogAhPmL2L2QK7Mu7KlHu6HGxW2x9HmTm_5suPPFt5xVDbGbOZXxNqF9TkE5xINw9U7AfhysgigB1z07_GzQ6tkO_uA5V6LNGW76jAJcn2F8AT0R5aybRD-8CJ-RBz2vmzzTDYVflbCYUgnh9GPQasqcAmFuI-YA_0gijT4p7RKKHfI4-7HBYoY6z2b2cJ0elxSrcbCC2aRIaaZlLVnfrxgIoDOsS0fztFY1BoSDeN5F8k_jPrdi5fnr7d5wDr21rjQB6NQ5ubys5TIJNufgS_Uq6YPdI8umQpBHTA" 'http://ab9ce5b8019954239ae8acecb3584788-329956005.ap-northeast-2.elb.amazonaws.com:8080/orders POST {"storeName": "flowershop", "itemName": "rose", "qty": "1", "itemPrice": "20000", "userName": "LEE"}'
-
-2. kubectl set image deploy order order=052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-order:v5.4
-
-2.1 siege 로그 확인 
-
-3. cd /flowerdelivery/order/kubernetes
-
-4. kubectl apply -f deployment.yml
-
-5. kubectl apply -f service.yaml
-
-6. kubectl exec -it siege -- /bin/bash
-
-7. 배포 완료 후 kubectl get deploy order -o yaml 명령을 쳐서 image 와 readinessProbe 가 정상적으로 설정되어있는지 확인
+신규로 추가한 상품서비스의 배포 스크립트에 readinessProbe 옵션을 추가한다. 
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: item
+  labels:
+    app: item
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: item
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: item
+  labels:
+    app: item
+spec:
+  selector:
+    matchLabels:
+      app: item
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: item
     spec:
       containers:
-      - image: 052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/order:latest
-        
-	imagePullPolicy: Always
-
-8. kubectl get pod 실행하여 STATUS가 정상적으로 Running 상태 확인
-
-9. siege 터미널을 열어서 충분한 시간만큼 부하를 준다. 
- - kubectl exec -it siege -- /bin/bash
- - siege -c100 -t120S -r10 -v --content-type "application/json" --header="Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzY29wZSI6WyJyZWFkIiwid3JpdGUiLCJ0cnVzdCJdLCJjb21wYW55IjoiVWVuZ2luZSIsImV4cCI6MTYyMTk5NDk0MSwiYXV0aG9yaXRpZXMiOlsiUk9MRV9UUlVTVEVEX0NMSUVOVCIsIlJPTEVfQ0xJRU5UIl0sImp0aSI6InFjWnRoQjB5NUJqWDhOWkNHOVFsNlRPTGpTUT0iLCJjbGllbnRfaWQiOiJ1ZW5naW5lLWNsaWVudCJ9.XeAYARc3SNMC6sJVzDCQJ1TwOqLC_aNRtdx8rjGZetHgxBkxdogAhPmL2L2QK7Mu7KlHu6HGxW2x9HmTm_5suPPFt5xVDbGbOZXxNqF9TkE5xINw9U7AfhysgigB1z07_GzQ6tkO_uA5V6LNGW76jAJcn2F8AT0R5aybRD-8CJ-RBz2vmzzTDYVflbCYUgnh9GPQasqcAmFuI-YA_0gijT4p7RKKHfI4-7HBYoY6z2b2cJ0elxSrcbCC2aRIaaZlLVnfrxgIoDOsS0fztFY1BoSDeN5F8k_jPrdi5fnr7d5wDr21rjQB6NQ5ubys5TIJNufgS_Uq6YPdI8umQpBHTA" 'http://ab9ce5b8019954239ae8acecb3584788-329956005.ap-northeast-2.elb.amazonaws.com:8080/orders POST {"storeName": "flowershop", "itemName": "rose", "qty": "1", "itemPrice": "20000", "userName": "LEE"}'
-
-10. 기존 터미널에서 kubectl set image 명령으로 신규 버전을 배포한다.
-
-11. kubectl set image deploy order order=052937454741.dkr.ecr.ap-northeast-2.amazonaws.com/user03-order:v5.4
-
-12. siege 로그를 보면서 배포시 무정지로 배포된 것을 확인한다.
+      - name: item
+        image: 583098675101.dkr.ecr.ap-northeast-2.amazonaws.com/item:v1
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: '/items'
+            port: 8080
+          initialDelaySeconds: 10
+          timeoutSeconds: 2
+          periodSeconds: 5
+          failureThreshold: 10        
+---
+```
 
 ```
-siege -c100 -t120S -r10 --content-type "application/json" 'http://localhost:8081/orders POST {"item": "chicken"}'
+C:\workspace\flowerdelivery\item>kubectl apply -f kube-item-ready.yml
+service/item created
+deployment.apps/item created
+```
+배포된 모습 
+![image](https://user-images.githubusercontent.com/80744199/121331140-9092b600-c951-11eb-8e95-220a467a265f.png)
 
-** SIEGE 4.0.5
-** Preparing 100 concurrent users for battle.
-The server is now under siege...
-
-HTTP/1.1 201     0.68 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.68 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.70 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.70 secs:     207 bytes ==> POST http://localhost:8081/orders
-:
+siege 에 상품 서비스를 계속 호출 하게 설정 한후 
+```
+siege -c100 -t120S -v --content-type "application/json" 'http://10.100.6.190:8080/items POST {"storeName": "KJSHOP", "itemName": "roses set n1", "stockCnt": "5", "itemPrice": "20000"}'
 
 ```
 
-- 새버전으로의 배포 시작
-```
-kubectl set image ...
-```
+Set image 명령어를 통해 배포를 수행 한다. 
 
-- seige 의 화면으로 넘어가서 Availability 가 100% 미만으로 떨어졌는지 확인
-```
-Transactions:		        3078 hits
-Availability:		       70.45 %
-Elapsed time:		       120 secs
-Data transferred:	        0.34 MB
-Response time:		        5.60 secs
-Transaction rate:	       17.15 trans/sec
-Throughput:		        0.01 MB/sec
-Concurrency:		       96.02
-
-```
-배포기간중 Availability 가 평소 100%에서 70% 대로 떨어지는 것을 확인. 원인은 쿠버네티스가 성급하게 새로 올려진 서비스를 READY 상태로 인식하여 서비스 유입을 진행한 것이기 때문. 이를 막기위해 Readiness Probe 를 설정함:
-
-```
-# deployment.yaml 의 readiness probe 의 설정:
+![image](https://user-images.githubusercontent.com/10009227/121339077-149c6c00-c959-11eb-80ff-ec6f37674d60.png)
 
 
-kubectl apply -f kubernetes/deployment.yaml
-```
+siege를 통해 100% 가용성을 확인했으므로  무정지 배포가 되었다. 
 
-- 동일한 시나리오로 재배포 한 후 Availability 확인:
-```
-Transactions:		        3078 hits
-Availability:		       100 %
-Elapsed time:		       120 secs
-Data transferred:	        0.34 MB
-Response time:		        5.60 secs
-Transaction rate:	       17.15 trans/sec
-Throughput:		        0.01 MB/sec
-Concurrency:		       96.02
+![image](https://user-images.githubusercontent.com/80744199/121331228-a43e1c80-c951-11eb-83b9-faab9c564c25.png)
 
-```
 
-배포기간 동안 Availability 가 변화없기 때문에 무정지 재배포가 성공한 것으로 확인됨.
+
+
 
 ## ConfigMap
 
-- ConfigMaps는 컨테이너 이미지로부터 설정 정보를 분리할 수 있도록 Kubernetes에서 제공해주는 설정이다. 환경변수나 설정값 들을 환경변수로 관리해 Pod가 생성될 때 이 값을 주입할 수 있다.
-- Flowerdelivery 시스템에서는 namespace 값을 저장하여 사용하기 위해서 아래와 같이 flowerdelivery-config라는 이름의 config map 에 flowerdelivery라는 변수로 namespace의 값을 저장했다.
+ConfigMaps는 컨테이너 이미지로부터 설정 정보를 분리할 수 있도록 Kubernetes에서 제공해주는 설정이다. 환경변수나 설정값 들을 환경변수로 관리해 Pod가 생성될 때 이 값을 주입할 수 있다.
+Flowerdelivery 시스템에서는 namespace 값을 저장하여 사용하기 위해서 아래와 같이 flowerdelivery-config라는 이름의 config map 에 flowerdelivery라는 변수로 namespace의 값을 저장했다.
 
-![image](https://user-images.githubusercontent.com/44644430/119458742-0571c780-bd78-11eb-91e1-b1362b6b1066.png)
+flowerdelivery-config.yml
 
-![image](https://user-images.githubusercontent.com/44644430/119458850-22a69600-bd78-11eb-85e6-1589e471acee.png)
+![image](https://user-images.githubusercontent.com/80744199/121285031-acc63100-c918-11eb-81a3-84181ca9cd10.png)
+
+```
+C:\workspace\flowerdelivery>kubectl apply -f flowerdelivery-config.yml
+configmap/flowerdelivery-config created
+
+```
+
+buildspec.yml 에 아래와 같이 namespacename 이라는 환경 변수에 위 컨피그 맵에서 정의한 nsname의 값을 설정한다.
+
+![image](https://user-images.githubusercontent.com/80744199/121285217-f44cbd00-c918-11eb-87be-a6c8554f01a1.png)
+
+빌드/배포 후에 
+
+![image](https://user-images.githubusercontent.com/80744199/121285340-31b14a80-c919-11eb-8478-e5e33ed1a84d.png)
+
+
+POD 로 진입하여 환경변수 및 Echo로 namespacename 값을 확인한다.
+
+pod진입
+
+```
+C:\workspace\flowerdelivery>kubectl exec -it -n flowerdelivery pod/order-58dd6cf76f-4wsrs /bin/bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [POD] -- [COMMAND] instead.
+root@order-58dd6cf76f-4wsrs:/# 
+root@order-58dd6cf76f-4wsrs:/# 
+root@order-58dd6cf76f-4wsrs:/# env
+```
+
+env 확인
+
+https://user-images.githubusercontent.com/80744199/121285490-71783200-c919-11eb-923b-a2267ccd00e6.png
+
+echo 로 환경변수 확인
+
+```
+root@order-58dd6cf76f-4wsrs:/# echo $namespacename
+flowerdelivery
+```
+
