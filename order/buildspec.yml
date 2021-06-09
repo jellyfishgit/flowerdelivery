@@ -2,7 +2,7 @@ version: 0.2
 
 env:
   variables:
-    _PROJECT_NAME: "user03-order"
+    _PROJECT_NAME: "order"
 
 phases:
   install:
@@ -23,7 +23,7 @@ phases:
       - echo $CODEBUILD_RESOLVED_SOURCE_VERSION
       - echo start command
       - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
-      - cd order
+      - cd $_PROJECT_NAME
       - echo $PWD
   build:
     commands:
