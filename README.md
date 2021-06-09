@@ -2041,11 +2041,7 @@ pod 자원을 모니터링
 ![image](https://user-images.githubusercontent.com/80744199/121320485-2f1a1980-c948-11eb-9a43-b13335d4de64.png)
 
 
-
-
-
-## 무정지
-
+### 무정지배포
 
 신규로 추가한 상품서비스의 배포 스크립트에 readinessProbe 옵션을 추가한다. 
 ```
