@@ -24,6 +24,7 @@ intensive lv2 course  group 3
     - [오토스케일 아웃](#오토스케일-아웃)
     - [무정지 재배포](#무정지배포)
     - [Configmap](#ConfigMap)
+    - [livenessProbe](#livenessProbe)
   
 # 서비스 시나리오
 
