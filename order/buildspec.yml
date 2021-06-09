@@ -48,10 +48,10 @@ phases:
             name: $_PROJECT_NAME
 #            namespace: flowerdelivery
             namespace:
-            - valueFrom:
-              configMapKeyRef:
-                name: flowerdelivery-config
-                key: nsname
+              valueFrom:
+                configMapKeyRef:
+                  name: flowerdelivery-config
+                  key: nsname
             labels:
               app: $_PROJECT_NAME
           spec:
